@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/magnusfurugard/multi-john/john"
@@ -47,25 +48,32 @@ func New(maxNodes int, etcd *clientv3.Client) (*Node, error) {
 }
 
 func (n *Node) GetSession() error {
-	var s string
+	//var s string
+	newID := uuid.NewString()
 
-	re, err := n.etcd.KV.Get(context.TODO(), sID)
+	lease := clientv3.NewLease(n.etcd)
+	timeout, err := lease.Grant(context.TODO(), timeoutSeconds*10)
 	if err != nil {
 		return err
 	}
 
-	if len(re.Kvs) == 0 {
-		n.SessionID = uuid.NewString()
-		tx := n.etcd.Txn(context.TODO())
-		_, err := tx.If().Then(
-			clientv3.OpPut(sID, s),
-		).Commit()
-		if err != nil {
-			return err
-		}
-	} else {
-		n.SessionID = string(re.Kvs[0].Value)
+	p := path(sID)
+	re, err := n.etcd.KV.Txn(context.TODO()).
+		If(clientv3.Compare(clientv3.CreateRevision(p), ">", 0)).
+		Then(clientv3.OpGet(p)).
+		Else(clientv3.OpPut(p, newID, clientv3.WithLease(timeout.ID))).
+		Commit()
+
+	if re.Responses[0].GetResponsePut() != nil {
+		n.SessionID = newID
+		return nil
 	}
+
+	res, err := n.etcd.KV.Get(context.TODO(), sID)
+	if err != nil {
+		return err
+	}
+	n.SessionID = string(res.Kvs[0].Value)
 
 	return nil
 }
@@ -114,6 +122,25 @@ func (n *Node) Heartbeat() error {
 	return nil
 }
 
-func (n *Node) Start(johnCmd john.Cmd) {
+func (n *Node) KeepAlive() chan bool {
+	ticker := time.NewTicker(time.Duration(timeoutSeconds) * time.Second)
+	var kill chan bool
+	go func() {
+		for {
+			select {
+			case <-kill:
+				break
+			case <-ticker.C:
+				n.Heartbeat()
+			}
+		}
+	}()
+	return kill
+}
+
+func (n *Node) Start(johnCmd john.Cmd) []string {
+	kill := n.KeepAlive()
 	johnCmd.Run()
+	kill <- true
+	return johnCmd.Results()
 }
