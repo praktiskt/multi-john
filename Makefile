@@ -12,3 +12,6 @@ standalone-etcd:
 	-p 2379:2379 \
 	-p 2380:2380 \
 	bitnami/etcd:latest
+
+bup:
+	docker-compose build && docker-compose up

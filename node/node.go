@@ -3,26 +3,33 @@ package node
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/magnusfurugard/multi-john/john"
 	"go.etcd.io/etcd/clientv3"
+	"go.uber.org/zap"
 )
 
 var (
 	s   = "session"
 	sID = s + "/id"
 
-	timeoutSeconds = int64(2)
+	timeoutSeconds = int64(10)
 )
 
 type Node struct {
 	etcd       *clientv3.Client
+	Log        *zap.SugaredLogger
 	Number     int
-	TotalNodes int
+	Results    chan Msg
 	SessionID  string
+	TotalNodes int
+}
+
+type Msg struct {
+	TS      time.Time
+	Payload string
 }
 
 func path(args ...string) string {
@@ -33,9 +40,10 @@ func path(args ...string) string {
 	return s[:len(s)-1]
 }
 
-func New(maxNodes int, etcd *clientv3.Client) (*Node, error) {
+func New(maxNodes int, etcd *clientv3.Client, logger *zap.Logger) (*Node, error) {
 	n := Node{}
 	n.etcd = etcd
+	n.Log = logger.Sugar()
 	if err := n.GetSession(); err != nil {
 		return nil, err
 	}
@@ -48,7 +56,6 @@ func New(maxNodes int, etcd *clientv3.Client) (*Node, error) {
 }
 
 func (n *Node) GetSession() error {
-	//var s string
 	newID := uuid.NewString()
 
 	lease := clientv3.NewLease(n.etcd)
@@ -96,16 +103,12 @@ func (n *Node) GetNodeNumber() error {
 			return err
 		}
 		if re.Responses[0].GetResponsePut() != nil {
+			n.Log.Infof("i am node %v", i)
 			n.Number = i
-			log.Printf("i am now node %v", i)
 			return nil
 		}
 	}
 	return fmt.Errorf("no more nodes are available")
-}
-
-func (n *Node) GetTotalNodes() int {
-	return 2
 }
 
 func (n *Node) Heartbeat() error {
@@ -123,12 +126,13 @@ func (n *Node) Heartbeat() error {
 }
 
 func (n *Node) KeepAlive() chan bool {
-	ticker := time.NewTicker(time.Duration(timeoutSeconds) * time.Second)
-	var kill chan bool
+	ticker := time.NewTicker(time.Duration(timeoutSeconds/2) * time.Second)
+	kill := make(chan bool, 1)
 	go func() {
 		for {
 			select {
 			case <-kill:
+				n.Log.Info("stopping heartbeats")
 				break
 			case <-ticker.C:
 				n.Heartbeat()
@@ -138,9 +142,8 @@ func (n *Node) KeepAlive() chan bool {
 	return kill
 }
 
-func (n *Node) Start(johnCmd john.Cmd) []string {
+func (n *Node) Start(johnCmd john.Cmd) (chan []string, chan bool) {
 	kill := n.KeepAlive()
-	johnCmd.Run()
-	kill <- true
-	return johnCmd.Results()
+	go johnCmd.Run()
+	return johnCmd.Results, kill
 }

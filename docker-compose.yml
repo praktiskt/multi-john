@@ -1,0 +1,18 @@
+version: "3.9"
+services:
+  etcd:
+    image: "bitnami/etcd:latest"
+    ports:
+      - "2379:2379"
+    environment:
+      - ALLOW_NONE_AUTHENTICATION=yes
+      - ETCD_ADVERTISE_CLIENT_URLS=http://localhost:2379
+  node:
+    build: .
+    scale: 0
+    environment:
+      - ETCD_ADVERTISE_CLIENT_URLS=etcd:2379
+      - JOHN_PATH=/jtr/run/john
+      - TOTAL_NODES=5
+    depends_on:
+      - etcd
