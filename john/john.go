@@ -13,7 +13,6 @@ import (
 )
 
 var (
-	//potFile = uuid.NewString() + ".pot"
 	potFile = "some" + ".pot"
 	potFlag = "--pot=" + potFile
 )
