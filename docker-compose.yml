@@ -7,6 +7,7 @@ services:
     environment:
       - ALLOW_NONE_AUTHENTICATION=yes
       - ETCD_ADVERTISE_CLIENT_URLS=http://localhost:2379
+
   node:
     build: .
     scale: 0
@@ -16,3 +17,16 @@ services:
       - TOTAL_NODES=5
     depends_on:
       - etcd
+
+  howdy:
+    build: .
+    scale: 1
+    command: ./multijohn --mode=howdy
+    ports:
+       - 8080:8080
+    environment:
+      - ETCD_ADVERTISE_CLIENT_URLS=etcd:2379
+      - TOTAL_NODES=5
+    depends_on:
+      - etcd
+    

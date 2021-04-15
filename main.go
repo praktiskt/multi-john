@@ -1,89 +1,81 @@
 package main
 
 import (
-	"fmt"
-	"log"
+	"context"
+	"flag"
 	"os"
 	"os/signal"
-	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
-	"github.com/magnusfurugard/multi-john/john"
-	"github.com/magnusfurugard/multi-john/node"
+	"github.com/magnusfurugard/multi-john/howdy"
+	"github.com/magnusfurugard/multi-john/worker"
 	"go.etcd.io/etcd/clientv3"
 	"go.uber.org/zap"
 )
 
-func main() {
+var mode string
 
+func init() {
+	flag.StringVar(&mode, "mode", "worker", "mode to start in, must be worker or howdy")
+}
+
+func main() {
+	// Logger
+	logger, _ := zap.NewProduction()
+	defer logger.Sync() // flushes buffer, if any
+	sugar := logger.Sugar()
+	flag.Parse()
+	sugar.Info(mode)
+
+	// Find etcd
 	endpoint := []string{}
-	if len(os.Getenv("ETCD_ADVERTISE_CLIENT_URLS")) != 0 {
-		endpoint = append(endpoint, os.Getenv("ETCD_ADVERTISE_CLIENT_URLS"))
+	if s, ok := os.LookupEnv("ETCD_ADVERTISE_CLIENT_URLS"); ok {
+		endpoint = append(endpoint, strings.Split(s, ",")...)
 	} else {
 		endpoint = append(endpoint, "localhost:2379")
+		//sugar.Panicf("found no advertised client urls for etcd")
 	}
 
-	log.Print("connect to etcd...")
+	sugar.Info("connect to etcd...")
 	cli, err := clientv3.New(clientv3.Config{
 		Endpoints:   endpoint,
 		DialTimeout: 10 * time.Second,
 	})
 	if err != nil {
-		panic(err)
+		sugar.Panic(err)
 	}
-
 	defer cli.Close()
 
-	logger, _ := zap.NewProduction()
-	defer logger.Sync() // flushes buffer, if any
-	sugar := logger.Sugar()
-
-	var totalNodes int
-	if len(os.Getenv("TOTAL_NODES")) != 0 {
-		totalNodes, _ = strconv.Atoi(os.Getenv("TOTAL_NODES"))
-	} else {
-		totalNodes = 2
-	}
-
-	n, err := node.New(totalNodes, cli, logger)
-	if err != nil {
-		sugar.Errorf("Unable to start node: %v", err)
-		cli.Close()
-		os.Exit(1)
-	}
-
-	flags := map[string]string{}
-	flags["format"] = "raw-sha256"
-	flags["node"] = fmt.Sprintf("%v/%v", n.Number, n.TotalNodes)
-
-	var johnPath string
-	if len(os.Getenv("JOHN_PATH")) == 0 {
-		johnPath = "john"
-	} else {
-		johnPath = os.Getenv("JOHN_PATH")
-	}
-
-	cmd := john.New(
-		johnPath,
-		"dummy",
-		flags,
-		logger,
-	)
-
-	go func() {
-		msgs, _ := n.Start(cmd)
+	// Configure howdy
+	if mode == "howdy" {
+		var re *clientv3.GetResponse
 		for {
-			select {
-			case msg := <-msgs:
-				sugar.Debug("main got %v", msg)
+			re, err = cli.KV.Get(context.TODO(), "session/id")
+			if err != nil {
+				sugar.Panic(err)
+			}
+
+			if len(re.Kvs) != 0 {
+				break
+			} else {
+				sugar.Info("waiting for session...")
+				time.Sleep(time.Duration(1) * time.Second)
 			}
 		}
-	}()
-
-	termChan := make(chan os.Signal)
-	signal.Notify(termChan, syscall.SIGINT, syscall.SIGTERM)
-	<-termChan
-	sugar.Infof("stopping node %v", n.Number)
+		sessionID := string(re.Kvs[0].Value)
+		sugar.Infof("connected to session %v", sessionID)
+		s := howdy.New(8080, sessionID, logger, cli)
+		s.Serve()
+	} else {
+		// Start worker
+		node := worker.New(logger, cli)
+		// Wait for termination signal
+		termChan := make(chan os.Signal)
+		signal.Notify(termChan, syscall.SIGINT, syscall.SIGTERM)
+		<-termChan
+		sugar.Infof("stopping node %v", node.Number)
+	}
 
 }
