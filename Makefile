@@ -1,6 +1,6 @@
 
-make-random:
-	uuidgen | tail -c 2 | tr -d '\n' | sha256sum | sed 's/[^a-z0-9]//g' | tr -d '\n' > dummy
+#make-random:
+#	uuidgen | tail -c 2 | tr -d '\n' | sha256sum | sed 's/[^a-z0-9]//g' | tr -d '\n' > dummy
 
 run:  #make-random
 	go run *.go

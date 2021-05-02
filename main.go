@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"os"
 	"os/signal"
@@ -50,23 +49,8 @@ func main() {
 
 	// Configure howdy
 	if mode == "howdy" {
-		var re *clientv3.GetResponse
-		for {
-			re, err = cli.KV.Get(context.TODO(), "session/id")
-			if err != nil {
-				sugar.Panic(err)
-			}
 
-			if len(re.Kvs) != 0 {
-				break
-			} else {
-				sugar.Info("waiting for session...")
-				time.Sleep(time.Duration(1) * time.Second)
-			}
-		}
-		sessionID := string(re.Kvs[0].Value)
-		sugar.Infof("connected to session %v", sessionID)
-		s := howdy.New(8080, sessionID, logger, cli)
+		s := howdy.New(8080, logger, cli)
 		s.Serve()
 	} else {
 		// Start worker

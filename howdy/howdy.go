@@ -5,8 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
+	"os/signal"
 	"strings"
 	"sync"
+	"syscall"
 
 	"go.etcd.io/etcd/clientv3"
 	"go.uber.org/zap"
@@ -26,27 +29,40 @@ type Results struct {
 }
 
 type Node struct {
+	Status  string
 	Results []string `json:"results"`
 }
 
-func New(port int, sessionID string, logger *zap.Logger, etcd *clientv3.Client) Server {
+func New(port int, logger *zap.Logger, etcd *clientv3.Client) Server {
 	return Server{
-		port:      port,
-		sessionID: sessionID,
-		log:       logger.Sugar(),
-		etcd:      etcd,
+		port: port,
+		log:  logger.Sugar(),
+		etcd: etcd,
 	}
 }
 
-func (s *Server) CheckSession() {
-	//TODO: Check if session is still alive. If not, detatch.
+func (s *Server) ValidSession() bool {
+	re, err := s.etcd.KV.Get(context.TODO(), "session/id")
+	if err != nil {
+		s.log.Error(err)
+		return false
+	}
+	if len(re.Kvs) == 0 {
+		s.log.Warn("no active session found")
+		return false
+	}
+	if string(re.Kvs[0].Value) != s.sessionID {
+		s.log.Infof("found new session %v", string(re.Kvs[0].Value))
+		s.sessionID = string(re.Kvs[0].Value)
+	}
+	return true
 }
 
-func (s *Server) GetCurrent() {
+func (s *Server) GetCurrent() Results {
 	re, _ := s.etcd.KV.Get(context.TODO(), "session/"+s.sessionID, clientv3.WithPrefix())
 	if len(re.Kvs) == 0 {
 		s.res = Results{}
-		return
+		return Results{}
 	}
 
 	r := map[string]Node{}
@@ -55,8 +71,8 @@ func (s *Server) GetCurrent() {
 		value := kv.Value
 		p := strings.Split(key, "/")
 		if p[len(p)-1] == "results" {
-			d := []string{}
 			nn := p[len(p)-2]
+			d := []string{}
 			err := json.Unmarshal(value, &d)
 			if err != nil {
 				s.log.Error(err)
@@ -64,24 +80,35 @@ func (s *Server) GetCurrent() {
 			r[nn] = Node{Results: d}
 		}
 	}
-	s.res = Results{Nodes: r}
+	return Results{Nodes: r}
 }
 
 func (s *Server) Serve() {
-	handler := func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case "GET":
-			s.GetCurrent()
-			j, _ := json.Marshal(s.res)
-			w.Write(j)
-			s.log.Infof("served %v", string(j))
-		default:
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			fmt.Fprintf(w, "nothing here dude")
-			s.log.Info("bad request")
+	go func() {
+		handler := func(w http.ResponseWriter, r *http.Request) {
+			switch r.Method {
+			case "GET":
+				var j []byte
+				if s.ValidSession() {
+					j, _ = json.Marshal(s.GetCurrent())
+				} else {
+					j, _ = json.Marshal(map[string]string{"error": "no active session"})
+					s.log.Warn("found no valid session")
+				}
+				w.Write(j)
+				s.log.Debugf("served %v", string(j))
+			default:
+				w.WriteHeader(http.StatusMethodNotAllowed)
+				fmt.Fprintf(w, "nothing here dude")
+				s.log.Info("bad request")
+			}
 		}
-	}
-	http.HandleFunc("/", handler)
-	s.log.Infof("serving on port %v", s.port)
-	http.ListenAndServe(fmt.Sprintf(":%v", s.port), nil)
+		http.HandleFunc("/", handler)
+		s.log.Infof("serving on port %v", s.port)
+		http.ListenAndServe(fmt.Sprintf(":%v", s.port), nil)
+	}()
+	termChan := make(chan os.Signal)
+	signal.Notify(termChan, syscall.SIGINT, syscall.SIGTERM)
+	<-termChan
+	s.log.Info("stopping howdy")
 }
