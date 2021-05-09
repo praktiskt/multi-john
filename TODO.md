@@ -1,1 +1,4 @@
-* Använd --pot=file.pot, tail:a den för att se broken hashes och skicka på result channel
+* Tests
+* Versioned releases to Dockerhub
+* CI/CD
+* 

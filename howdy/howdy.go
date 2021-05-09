@@ -29,7 +29,7 @@ type Results struct {
 }
 
 type Node struct {
-	Status  string
+	Status  string   `json:"status"`
 	Results []string `json:"results"`
 }
 
