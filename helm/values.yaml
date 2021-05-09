@@ -1,5 +1,5 @@
 multijohn:
-    totalNodes: 10
+    totalNodes: 2
     imageName: praktiskt/multi-john:latest
 
     # Howdy is where you can find your results.
