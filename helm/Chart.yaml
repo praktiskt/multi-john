@@ -1,0 +1,8 @@
+name: multi-john
+description: A Helm Chart for multi-john.
+version: 0.0.1
+apiVersion: v1
+keywords:
+  - multi-john
+sources:
+home:

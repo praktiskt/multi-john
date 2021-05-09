@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    io.kompose.service: node
+  name: node
+spec:
+  replicas: {{ int .Values.multijohn.totalNodes }}
+  selector:
+    matchLabels:
+      io.kompose.service: node
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        io.kompose.service: node
+    spec:
+      containers:
+        - args:
+          - ./multijohn
+          - --mode=node
+          - --johnFile={{ .Values.multijohn.node.johnFile.path }}/{{ .Values.multijohn.node.johnFile.file}}
+          env:
+            - name: ETCD_ADVERTISE_CLIENT_URLS
+              value: etcd:{{ .Values.etcd.port }}
+            - name: JOHN_PATH
+              value: {{ .Values.multijohn.node.johnPath }}
+            - name: TOTAL_NODES
+              value: "{{ .Values.multijohn.totalNodes }}"
+          image: "{{ .Values.multijohn.imageName }}"
+          imagePullPolicy: Always
+          name: node
+          resources: {}
+          volumeMounts:
+            - mountPath: {{ .Values.multijohn.node.johnFile.path }}
+              name: input
+              readOnly: true
+      restartPolicy: Always
+      volumes:
+        - name: input
+          secret:
+            secretName: in
+
+status: {}

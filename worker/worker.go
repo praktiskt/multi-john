@@ -11,7 +11,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func New(logger *zap.Logger, cli *clientv3.Client) node.Node {
+func New(logger *zap.Logger, cli *clientv3.Client, johnFile string) node.Node {
 	sugar := logger.Sugar()
 
 	// Cofigure node
@@ -45,7 +45,7 @@ func New(logger *zap.Logger, cli *clientv3.Client) node.Node {
 
 	cmd := john.New(
 		johnPath,
-		"dummy", //TODO: Pass file name to process as app flag
+		johnFile,
 		flags,
 		logger,
 	)

@@ -15,9 +15,11 @@ import (
 )
 
 var mode string
+var johnFile string
 
 func init() {
 	flag.StringVar(&mode, "mode", "worker", "mode to start in, must be worker or howdy")
+	flag.StringVar(&johnFile, "johnFile", "dummy", "the file with hashes to process")
 }
 
 func main() {
@@ -49,12 +51,11 @@ func main() {
 
 	// Configure howdy
 	if mode == "howdy" {
-
 		s := howdy.New(8080, logger, cli)
 		s.Serve()
 	} else {
 		// Start worker
-		node := worker.New(logger, cli)
+		node := worker.New(logger, cli, johnFile)
 		// Wait for termination signal
 		termChan := make(chan os.Signal)
 		signal.Notify(termChan, syscall.SIGINT, syscall.SIGTERM)

@@ -1,8 +1,4 @@
-
-#make-random:
-#	uuidgen | tail -c 2 | tr -d '\n' | sha256sum | sed 's/[^a-z0-9]//g' | tr -d '\n' > dummy
-
-run:  #make-random
+run: 
 	go run *.go
 
 standalone-etcd:
@@ -15,3 +11,10 @@ standalone-etcd:
 
 bup:
 	docker-compose build && docker-compose up
+
+build:
+	docker build . -t multi-john:latest
+
+release: build
+	docker tag multi-john:latest praktiskt/multi-john:latest &&\
+	docker push praktiskt/multi-john:latest

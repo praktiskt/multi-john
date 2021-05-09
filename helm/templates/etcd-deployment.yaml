@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    io.kompose.service: etcd
+  name: etcd
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: etcd
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        io.kompose.service: etcd
+    spec:
+      containers:
+        - env:
+            - name: ALLOW_NONE_AUTHENTICATION
+              value: "yes"
+            - name: ETCD_ADVERTISE_CLIENT_URLS
+              value: "http://localhost:{{ .Values.etcd.port }}"
+          image: "{{ .Values.etcd.imageName }}"
+          name: etcd
+          ports:
+            - containerPort: {{ int .Values.etcd.port }}
+          resources: {}
+      restartPolicy: Always
+status: {}

@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    io.kompose.service: etcd
+  name: etcd
+spec:
+  ports:
+    - name: "{{ .Values.etcd.port }}"
+      port: {{ .Values.etcd.port }}
+      targetPort: {{ .Values.etcd.port }}
+  selector:
+    io.kompose.service: etcd
+status:
+  loadBalancer: {}
