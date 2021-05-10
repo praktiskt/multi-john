@@ -11,6 +11,7 @@ services:
   node:
     build: .
     scale: 0
+    command: ./multijohn --mode=node --johnFlags="--format=raw-sha256"
     environment:
       - ETCD_ADVERTISE_CLIENT_URLS=etcd:2379
       - JOHN_PATH=/jtr/run/john

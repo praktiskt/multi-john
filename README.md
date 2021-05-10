@@ -16,14 +16,7 @@ The easiest way to run it on many machines is to use the Helm chart and run it o
 If no workers are started, no active session will be created. Once at least one worker has started, a session is created and workers are able to claim a slot if there are slots available (configured with `TOTAL_NODES`). If all workers exists the cluster, the session will eventually be terminated (and results purged).
 
 ## Development
-### One instance
 ```
 make standalone-etcd
 make run # runs *.go
-```
-
-### Many instances
-```
-make bup
-docker-compose scale node=<desired number of nodes>
 ```

@@ -11,6 +11,6 @@ spec:
       targetPort: {{ .Values.multijohn.howdy.port }}
   selector:
     io.kompose.service: howdy
-  type: NodePort
+  type: {{ .Values.multijohn.howdy.serviceType }}
 status:
   loadBalancer: {}

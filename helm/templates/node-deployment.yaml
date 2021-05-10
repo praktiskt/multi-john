@@ -20,6 +20,8 @@ spec:
           - ./multijohn
           - --mode=node
           - --johnFile={{ .Values.multijohn.node.johnFile.path }}/{{ .Values.multijohn.node.johnFile.file}}
+          - --johnFlags={{ .Values.multijohn.node.johnFlags }}
+          - --logLevel={{ .Values.multijohn.logLevel }}
           env:
             - name: ETCD_ADVERTISE_CLIENT_URLS
               value: etcd:{{ .Values.etcd.port }}
@@ -30,7 +32,13 @@ spec:
           image: "{{ .Values.multijohn.imageName }}"
           imagePullPolicy: Always
           name: node
-          resources: {}
+          resources:
+            requests:
+              memory: {{ .Values.multijohn.node.requests.memory }}
+              cpu: {{ .Values.multijohn.node.requests.cpu }}
+            limits:
+              memory: {{ .Values.multijohn.node.limits.memory }}
+              cpu: {{ .Values.multijohn.node.limits.cpu }}
           volumeMounts:
             - mountPath: {{ .Values.multijohn.node.johnFile.path }}
               name: input

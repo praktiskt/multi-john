@@ -19,6 +19,7 @@ spec:
         - args:
             - ./multijohn
             - --mode=howdy
+            - --logLevel={{ .Values.multijohn.logLevel }}
           env:
             - name: ETCD_ADVERTISE_CLIENT_URLS
               value: "etcd:{{ .Values.etcd.port }}"

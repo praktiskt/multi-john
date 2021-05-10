@@ -12,23 +12,51 @@ import (
 	"github.com/magnusfurugard/multi-john/worker"
 	"go.etcd.io/etcd/clientv3"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 var mode string
+var logLevel string
 var johnFile string
+var johnFlags string
 
 func init() {
 	flag.StringVar(&mode, "mode", "worker", "mode to start in, must be worker or howdy")
+	flag.StringVar(&logLevel, "logLevel", "info", "log level, info or debug")
 	flag.StringVar(&johnFile, "johnFile", "dummy", "the file with hashes to process")
+	flag.StringVar(&johnFlags, "johnFlags", "", "a comma-separated list of flags to pass, e.g. --format=raw-sha256,--fork=2")
+}
+
+func GetLogLevel() zapcore.Level {
+	if strings.ToLower(logLevel) == "debug" {
+		return zapcore.DebugLevel
+	}
+	return zapcore.InfoLevel
 }
 
 func main() {
+	flag.Parse()
 	// Logger
-	logger, _ := zap.NewProduction()
+	logger, _ := zap.Config{
+		Encoding:         "json",
+		Level:            zap.NewAtomicLevelAt(GetLogLevel()),
+		OutputPaths:      []string{"stderr"},
+		ErrorOutputPaths: []string{"stderr"},
+		EncoderConfig: zapcore.EncoderConfig{
+			MessageKey: "message",
+
+			LevelKey:    "level",
+			EncodeLevel: zapcore.CapitalLevelEncoder,
+
+			TimeKey:    "time",
+			EncodeTime: zapcore.ISO8601TimeEncoder,
+
+			CallerKey:    "caller",
+			EncodeCaller: zapcore.ShortCallerEncoder,
+		},
+	}.Build()
 	defer logger.Sync() // flushes buffer, if any
 	sugar := logger.Sugar()
-	flag.Parse()
-	sugar.Info(mode)
 
 	// Find etcd
 	endpoint := []string{}
@@ -49,13 +77,13 @@ func main() {
 	}
 	defer cli.Close()
 
-	// Configure howdy
 	if mode == "howdy" {
+		// Configure howdy
 		s := howdy.New(8080, logger, cli)
 		s.Serve()
 	} else {
 		// Start worker
-		node := worker.New(logger, cli, johnFile)
+		node := worker.New(logger, cli, johnFile, johnFlags)
 		// Wait for termination signal
 		termChan := make(chan os.Signal)
 		signal.Notify(termChan, syscall.SIGINT, syscall.SIGTERM)

@@ -1,12 +1,24 @@
 multijohn:
+    # Common configuration across the entire application.
     totalNodes: 2
     imageName: praktiskt/multi-john:latest
+    logLevel: debug
 
     # Howdy is where you can find your results.
     howdy:
         port: 8080
+        serviceType: NodePort
+
     # A node is one worker, running john on one shard out of all totalNodes.
     node:
+        requests:
+            memory: "64Mi"
+            cpu: "250m"
+        limits:
+            memory: "128Mi"
+            cpu: "500m"
+        # This is where you specify what flags to pass to john. This includes what kind of hashes are part of johnFile.
+        johnFlags: --format=raw-sha256
         # This is where to find the john binary in the container.
         johnPath: /jtr/run/john
         # The contents of the file to process.

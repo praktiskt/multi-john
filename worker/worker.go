@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/magnusfurugard/multi-john/worker/john"
 	"github.com/magnusfurugard/multi-john/worker/node"
@@ -11,7 +12,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func New(logger *zap.Logger, cli *clientv3.Client, johnFile string) node.Node {
+func New(logger *zap.Logger, cli *clientv3.Client, johnFile string, johnFlags string) node.Node {
 	sugar := logger.Sugar()
 
 	// Cofigure node
@@ -31,11 +32,17 @@ func New(logger *zap.Logger, cli *clientv3.Client, johnFile string) node.Node {
 	}
 
 	// Configure john
-	//TODO: Pass flags to john as app flag
-	flags := map[string]string{
-		"format": "raw-sha256",
-		"node":   fmt.Sprintf("%v/%v", n.Number, n.TotalNodes),
+	flags := map[string]string{}
+	fl := strings.Split(johnFlags, ",")
+	if len(fl[0]) > 0 {
+		for _, flag := range fl {
+			f := strings.SplitN(flag, "=", 2)
+			flags[f[0]] = f[1]
+			sugar.Info(flags)
+		}
 	}
+	flags["--node"] = fmt.Sprintf("%v/%v", n.Number, n.TotalNodes)
+
 	var johnPath string
 	if j, ok := os.LookupEnv("JOHN_PATH"); ok {
 		johnPath = j

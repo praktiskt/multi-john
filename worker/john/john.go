@@ -37,7 +37,8 @@ func New(bin string, file string, flags map[string]string, logger *zap.Logger) C
 func (c *Cmd) args() []string {
 	res := []string{c.File, potFlag}
 	for k, v := range c.Flags {
-		res = append(res, fmt.Sprintf("--%v=%v", k, v))
+		res = append(res, fmt.Sprintf("%v=%v", k, v))
+		c.Log.Debug(res)
 	}
 	return res
 }

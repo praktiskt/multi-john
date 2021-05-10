@@ -1,3 +1,4 @@
+* Pass johnFlags as flags
 * Tests
 * Versioned releases to Dockerhub
 * CI/CD
