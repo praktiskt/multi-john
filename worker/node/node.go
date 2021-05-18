@@ -82,7 +82,7 @@ func (n *Node) GetSession() error {
 		n.SessionID = string(res.Kvs[0].Value)
 		n.Log.Debugf("found existing session:", n.SessionID)
 	}
-	n.Log.Info("connected to session %v", n.SessionID)
+	n.Log.Info("connected to session", n.SessionID)
 	go n.keepAlive(n.Paths.SessionID, n.SessionID)
 	return nil
 }

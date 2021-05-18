@@ -72,8 +72,7 @@ func (c *Cmd) Run() {
 	go watch(stderr)
 	go watch(stdout)
 
-	err = cmd.Start()
-	if err != nil {
+	if err := cmd.Start(); err != nil {
 		c.Log.Panic(err)
 	}
 

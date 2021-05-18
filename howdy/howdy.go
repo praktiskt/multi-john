@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -25,7 +26,7 @@ type Server struct {
 }
 
 type Results struct {
-	Nodes map[string]Node `json:"nodes"`
+	Nodes map[int]Node `json:"node"`
 }
 
 type Node struct {
@@ -65,20 +66,27 @@ func (s *Server) GetCurrent() Results {
 		return Results{}
 	}
 
-	r := map[string]Node{}
+	r := map[int]Node{}
 	for _, kv := range re.Kvs {
 		key := string(kv.Key)
 		value := kv.Value
 		p := strings.Split(key, "/")
+		node := Node{}
+		nn, err := strconv.Atoi(p[len(p)-1])
+		if err == nil {
+			node.Status = "alive"
+		}
 		if p[len(p)-1] == "results" {
-			nn := p[len(p)-2]
+			nn, _ = strconv.Atoi(p[len(p)-2])
 			d := []string{}
 			err := json.Unmarshal(value, &d)
 			if err != nil {
 				s.log.Error(err)
 			}
-			r[nn] = Node{Results: d}
+			node.Status = "alive"
+			node.Results = d
 		}
+		r[nn] = node
 	}
 	return Results{Nodes: r}
 }

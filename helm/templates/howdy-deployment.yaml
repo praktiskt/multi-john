@@ -23,8 +23,6 @@ spec:
           env:
             - name: ETCD_ADVERTISE_CLIENT_URLS
               value: "etcd:{{ .Values.etcd.port }}"
-            - name: TOTAL_NODES
-              value: "{{ .Values.multijohn.totalNodes }}"
           image: "{{ .Values.multijohn.imageName }}"
           imagePullPolicy: Always
           name: howdy

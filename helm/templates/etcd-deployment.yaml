@@ -5,7 +5,7 @@ metadata:
     io.kompose.service: etcd
   name: etcd
 spec:
-  replicas: 1
+  replicas: {{ int .Values.etcd.replicas }}
   selector:
     matchLabels:
       io.kompose.service: etcd
@@ -25,6 +25,12 @@ spec:
           name: etcd
           ports:
             - containerPort: {{ int .Values.etcd.port }}
-          resources: {}
+          resources: 
+              requests:
+                memory: {{ .Values.etcd.requests.memory }}
+                cpu: {{ .Values.etcd.requests.cpu }}
+              limits:
+                memory: {{ .Values.etcd.limits.memory }}
+                cpu: {{ .Values.etcd.requests.cpu }}
       restartPolicy: Always
 status: {}
