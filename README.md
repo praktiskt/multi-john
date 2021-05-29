@@ -13,7 +13,7 @@ The easiest way to run it on many machines is to use the Helm chart and run it o
 * `worker` - Runs `john` and ships results to `etcd`.
 * `howdy` - Small service to expose results. Queries `etcd` to expose the results.
 
-If no workers are started, no active session will be created. Once at least one worker has started, a session is created and workers are able to claim a slot if there are slots available (configured with `TOTAL_NODES`). If all workers exists the cluster, the session will eventually be terminated (and results purged).
+If no workers are started, no active session will be created. Once at least one worker has started, a session is created and workers are able to claim a slot if there are slots available (configured with `TOTAL_NODES`). If all workers terminate, the session will eventually be deleted (and results purged).
 
 ## Development
 ```

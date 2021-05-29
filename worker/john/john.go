@@ -66,16 +66,14 @@ func (c *Cmd) Run() {
 		scanner := bufio.NewScanner(stdx)
 		for scanner.Scan() {
 			m := scanner.Text()
-			c.Log.Debug(m)
+			c.Log.Info(m)
 		}
 	}
 	go watch(stderr)
 	go watch(stdout)
-
-	if err := cmd.Start(); err != nil {
+	c.Log.Debug("starting john")
+	if err := cmd.Run(); err != nil {
 		c.Log.Panic(err)
 	}
-
-	cmd.Wait()
-
+	c.Log.Debug("finished running john")
 }

@@ -17,9 +17,9 @@ multijohn:
         limits:
             memory: "128Mi"
             cpu: "500m"
-        # This is where you specify what flags to pass to john. This includes what kind of hashes are part of johnFile.
+        # This is where you specify what flags (comma-separated) to pass to john. This includes what kind of hashes are part of johnFile.
         johnFlags: --format=raw-sha256
-        # This is where to find the john binary in the container.
+        # This is where to find the john binary in the container. Unless you're building a custom container, there's no reason to change it.
         johnPath: /jtr/run/john
         # The contents of the file to process.
         johnFile: 

@@ -1,3 +1,6 @@
+CURRENT_COMMIT=$(shell git rev-parse HEAD)
+IMG_NAME=multi-john
+
 run: 
 	go run *.go
 
@@ -16,5 +19,7 @@ build:
 	docker build . -t multi-john:latest
 
 release: build
-	docker tag multi-john:latest praktiskt/multi-john:latest &&\
-	docker push praktiskt/multi-john:latest
+	docker tag multi-john:latest praktiskt/${IMG_NAME}:latest &&\
+	docker tag multi-john:latest praktiskt/${IMG_NAME}:${CURRENT_COMMIT} &&\
+	docker push praktiskt/${IMG_NAME}:latest &&\
+	docker push praktiskt/${IMG_NAME}:${CURRENT_COMMIT}
