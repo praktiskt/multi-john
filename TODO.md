@@ -1,5 +1,15 @@
-* Pass johnFlags as flags
-* Tests
-* Versioned releases to Dockerhub
-* CI/CD
-* Push potfile with session name to etcd to enable recovery from lost worker
+- Tests
+  - Unit tests
+  - Container / environment + end to end
+- CI/CD
+  - Tests
+  - Standardized release process to Docker hub
+- Push potfile / current worker state with session name for each node to etcd to enable recovery from lost worker if session is still alive, should the worker be restarted
+  - This could imply that a session lifetime is not the same as lost heartbeat from workers. TBD what to do.
+- Save session results indefinitely, but start a new session if all workers leave a session for long enough.
+  - .. Or create session identifier based on the potfile. If a new potfile is observed, it constitutes a new session. TBD what to do.
+- GPU support
+  - This likely just implies that the base container we push the multi-john binary into is changed.
+    - Should be configurable within the helm chart...
+- Dictionary support
+  - For the Helm chart, this implies a RWX volume is created (and that the cluster supports it), and some sort of batch script to pull data into it, likely to be custom. Also implies that workers will wait until the batch job has completed.

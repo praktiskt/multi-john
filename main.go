@@ -77,16 +77,19 @@ func main() {
 	}
 	defer cli.Close()
 
-	if mode == "howdy" {
-		// Configure howdy
+	switch mode {
+	case "howdy":
 		s := howdy.New(8080, logger, cli)
 		go s.Serve()
-	} else {
-		// Start worker
-		if err := worker.New(logger, cli, johnFile, johnFlags); err != nil {
+	case "worker":
+		err := worker.New(logger, cli, johnFile, johnFlags)
+		if err != nil {
 			sugar.Panic(err)
 		}
+	default:
+		sugar.Panicf("`%v` is not a valid mode", mode)
 	}
+
 	termChan := make(chan os.Signal)
 	signal.Notify(termChan, syscall.SIGINT, syscall.SIGTERM)
 	<-termChan
