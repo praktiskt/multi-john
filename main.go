@@ -80,15 +80,14 @@ func main() {
 	if mode == "howdy" {
 		// Configure howdy
 		s := howdy.New(8080, logger, cli)
-		s.Serve()
+		go s.Serve()
 	} else {
 		// Start worker
-		node := worker.New(logger, cli, johnFile, johnFlags)
-		// Wait for termination signal
-		termChan := make(chan os.Signal)
-		signal.Notify(termChan, syscall.SIGINT, syscall.SIGTERM)
-		<-termChan
-		sugar.Infof("stopping node %v", node.Number)
+		if err := worker.New(logger, cli, johnFile, johnFlags); err != nil {
+			sugar.Panic(err)
+		}
 	}
-
+	termChan := make(chan os.Signal)
+	signal.Notify(termChan, syscall.SIGINT, syscall.SIGTERM)
+	<-termChan
 }

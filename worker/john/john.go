@@ -47,19 +47,19 @@ func (c *Cmd) showArgs() []string {
 	return []string{c.File, "--show", potFlag}
 }
 
-func (c *Cmd) Run() {
+func (c *Cmd) Run() error {
 	os.Create(potFile)
 	c.WatchPotfile()
 	cmd := exec.Command(c.Bin, c.args()...)
 
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
-		c.Log.Panic(err)
+		return err
 	}
 
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		c.Log.Panic(err)
+		return err
 	}
 
 	watch := func(stdx io.ReadCloser) {
@@ -73,7 +73,8 @@ func (c *Cmd) Run() {
 	go watch(stdout)
 	c.Log.Debug("starting john")
 	if err := cmd.Run(); err != nil {
-		c.Log.Panic(err)
+		return err
 	}
 	c.Log.Debug("finished running john")
+	return nil
 }

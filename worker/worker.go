@@ -12,7 +12,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func New(logger *zap.Logger, cli *clientv3.Client, johnFile string, johnFlags string) node.Node {
+func New(logger *zap.Logger, cli *clientv3.Client, johnFile string, johnFlags string) error {
 	sugar := logger.Sugar()
 
 	// Cofigure node
@@ -57,19 +57,8 @@ func New(logger *zap.Logger, cli *clientv3.Client, johnFile string, johnFlags st
 		logger,
 	)
 
-	// Start john on node
-	go func() {
-		msgs := n.Start(cmd)
-		for {
-			select {
-			case msg := <-msgs:
-				if len(msg.Events) == 0 {
-					continue
-				}
-				sugar.Infof("msg %v", string(msg.Events[0].Kv.Value))
-			}
-		}
-	}()
-
-	return *n
+	if err := n.Start(cmd); err != nil {
+		return err
+	}
+	return nil
 }

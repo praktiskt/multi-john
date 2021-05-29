@@ -95,6 +95,7 @@ func (n *Node) GetNodeNumber() error {
 	}
 
 	for i := 1; i <= n.TotalNodes; i++ {
+		n.Log.Debugf("trying node number %v", i)
 		p := path("session", n.SessionID, "node", fmt.Sprint(i))
 		re, err := n.etcd.KV.Txn(context.TODO()).
 			If(clientv3.Compare(clientv3.Value(p), "=", "taken")).
@@ -112,6 +113,7 @@ func (n *Node) GetNodeNumber() error {
 			n.Paths.Results = path(p, "results")
 			return nil
 		}
+		n.Log.Debugf("could not claim node number %v", i)
 	}
 	return fmt.Errorf("no more nodes are available")
 }
@@ -160,9 +162,8 @@ func (n *Node) writeResults(results chan []string) {
 	}
 }
 
-func (n *Node) Start(johnCmd john.Cmd) clientv3.WatchChan {
+func (n *Node) Start(johnCmd john.Cmd) error {
 	go n.keepAlive(n.Paths.Node, "taken")
-	go johnCmd.Run()
 	go n.writeResults(johnCmd.Results)
-	return n.etcd.Watch(context.TODO(), n.Paths.Results)
+	return johnCmd.Run()
 }
