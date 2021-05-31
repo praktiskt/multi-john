@@ -18,7 +18,7 @@ spec:
       containers:
         - args:
           - ./multijohn
-          - --mode=node
+          - --mode=worker
           - --johnFile={{ .Values.multijohn.node.johnFile.path }}/{{ .Values.multijohn.node.johnFile.file}}
           - --johnFlags={{ .Values.multijohn.node.johnFlags }}
           - --logLevel={{ .Values.multijohn.logLevel }}
